@@ -14,7 +14,13 @@ export class SetController {
 
   @Get()
   async findAll(@Query() findSetDto: FindSetDto) {
-    return await this.setService.findAll(findSetDto);
+    const sets = await this.setService.findAll(findSetDto);
+
+    return {
+      status: 'success',
+      message: 'Successfully get Set List',
+      data: sets,
+    };
   }
 
   @Get(':code')
@@ -23,6 +29,10 @@ export class SetController {
     if (!set) {
       throw new NotFoundException('Set not found');
     }
-    return set;
+    return {
+      status: 'success',
+      message: 'Successfully get Set',
+      data: set,
+    };
   }
 }

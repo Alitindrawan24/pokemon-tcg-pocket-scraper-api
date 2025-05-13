@@ -14,7 +14,13 @@ export class CardController {
 
   @Get()
   async findAll(@Query() findCardDto: FindCardDto) {
-    return await this.cardService.findAll(findCardDto);
+    const cards = await this.cardService.findAll(findCardDto);
+
+    return {
+      status: 'success',
+      message: 'Successfully get Card List',
+      data: cards,
+    };
   }
 
   @Get(':set/:number')
@@ -23,6 +29,11 @@ export class CardController {
     if (!card) {
       throw new NotFoundException('Card not found');
     }
-    return card;
+
+    return {
+      status: 'success',
+      message: 'Successfully get Card',
+      data: card,
+    };
   }
 }
