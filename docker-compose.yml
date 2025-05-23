@@ -10,6 +10,7 @@ services:
     restart: unless-stopped
     environment:
       - MONGODB_HOST=mongodb://mongo/${MONGODB_DATABASE}
+      - TOKEN_STATIC=${TOKEN_STATIC}
     depends_on:
       - mongo
     networks:
