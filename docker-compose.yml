@@ -11,6 +11,8 @@ services:
     environment:
       - MONGODB_HOST=mongodb://mongo/${MONGODB_DATABASE}
       - TOKEN_STATIC=${TOKEN_STATIC}
+    volumes:
+      - ./public:/usr/src/app/public
     depends_on:
       - mongo
     networks:
