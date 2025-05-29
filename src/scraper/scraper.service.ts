@@ -24,6 +24,7 @@ export class ScraperService {
     if (response.status == 200) {
       const $: cheerio.CheerioAPI = cheerio.load(response.data);
       const tables = $('.sets-table tbody tr');
+      let order = 1;
       for (const table of tables) {
         const tds = $(table).find('td');
         if (tds.length > 1) {
@@ -46,6 +47,7 @@ export class ScraperService {
           setObject.code = code;
           setObject.date = date;
           setObject.count = count;
+          setObject.order = order++;
 
           await this.createSet(setObject);
         }

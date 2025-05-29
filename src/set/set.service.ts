@@ -12,11 +12,15 @@ export class SetService {
     private readonly helperService: HelperService,
   ) {}
   async findAll(findSetDto: FindSetDto) {
-    return await this.setModel.find({
-      ...(findSetDto.code && {
-        code: { $regex: new RegExp(findSetDto.code, 'i') },
-      }),
-    });
+    return await this.setModel
+      .find({
+        ...(findSetDto.code && {
+          code: { $regex: new RegExp(findSetDto.code, 'i') },
+        }),
+      })
+      .sort({
+        order: 1,
+      });
   }
 
   async findOne(code: string) {

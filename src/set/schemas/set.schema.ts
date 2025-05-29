@@ -19,6 +19,9 @@ export class Set {
 
   @Prop()
   date: string;
+
+  @Prop()
+  order: number;
 }
 
 export const SetSchema = SchemaFactory.createForClass(Set);
