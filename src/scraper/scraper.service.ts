@@ -175,13 +175,8 @@ export class ScraperService {
         const cardAttacks1 = new CardAttack();
         cardAttacks1.energy = cardAttack1[0]?.trim().split('');
         const cardAttack1Name = cardAttack1[1]?.trim().split(' ');
-        cardAttacks1.power = parseInt(
-          cardAttack1Name[cardAttack1Name.length - 1]?.trim(),
-        );
-
-        if (isNaN(cardAttacks1.power)) {
-          cardAttacks1.power = undefined;
-        }
+        cardAttacks1.power =
+          cardAttack1Name[cardAttack1Name.length - 1]?.trim();
 
         if (cardAttacks1.power === undefined) {
           cardAttacks1.name = cardAttack1[1].trim();
@@ -218,13 +213,8 @@ export class ScraperService {
           const cardAttacks2 = new CardAttack();
           cardAttacks2.energy = cardAttack2[0]?.trim().split('');
           const cardAttack2Name = cardAttack2[1]?.trim().split(' ');
-          cardAttacks2.power = parseInt(
-            cardAttack2Name[cardAttack2Name.length - 1]?.trim(),
-          );
-
-          if (isNaN(cardAttacks2.power)) {
-            cardAttacks2.power = undefined;
-          }
+          cardAttacks2.power =
+            cardAttack2Name[cardAttack2Name.length - 1]?.trim();
 
           if (cardAttacks2.power === undefined) {
             cardAttacks2.name = cardAttack2[1].trim();

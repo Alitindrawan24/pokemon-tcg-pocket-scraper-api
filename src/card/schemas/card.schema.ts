@@ -12,7 +12,7 @@ export class CardAttack {
   energy: string[];
   name: string;
   effect?: string;
-  power?: number;
+  power?: string;
 }
 
 @Schema()
