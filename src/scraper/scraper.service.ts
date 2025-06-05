@@ -234,13 +234,19 @@ export class ScraperService {
               ?.trim();
           }
 
-          cardAttacks2.effect = $('.card-text-attack .card-text-attack-effect')
+          cardAttacks2.effect = $(
+            '.card-text-attack:last-child .card-text-attack-effect',
+          )
             .text()
             .replace(/\n\s+/g, ' ')
             .trim();
 
           if (cardAttacks2.effect == '\n') {
             cardAttacks2.effect = undefined;
+          }
+
+          if (cardObject.attack_1.effect == cardAttacks2.effect) {
+            cardObject.attack_1.effect = undefined;
           }
 
           cardObject.attack_2 = cardAttacks2;
