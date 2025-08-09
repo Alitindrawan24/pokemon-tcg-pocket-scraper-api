@@ -14,6 +14,9 @@ export class CardService {
   async findAll(findCardDto: FindCardDto) {
     return await this.cardModel
       .find({
+        ...(findCardDto.q && {
+          name: new RegExp(this.helperService.titleCase(findCardDto.q), 'i'),
+        }),
         ...(findCardDto.set && { set: findCardDto.set }),
         ...(findCardDto.pokemonType && {
           pokemonType: this.helperService.titleCase(findCardDto.pokemonType),

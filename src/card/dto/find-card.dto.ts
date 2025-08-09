@@ -14,6 +14,10 @@ export class FindCardDto {
 
   @IsString()
   @IsOptional()
+  q: string;
+
+  @IsString()
+  @IsOptional()
   set: string;
 
   @IsString()
