@@ -30,8 +30,11 @@ export class ScraperService {
         if (tds.length > 1) {
           const setObject = new Set();
 
-          const image = $(tds[0]).find('span.set-icon img.set').attr('src');
           const code = $(tds[0]).find('span.code').text().trim();
+          const image =
+            code == 'P-A'
+              ? `https://assets.pokemon-zone.com/game-assets/UI/Textures/System/Exp/LOGO_expansion_PROMO-A_en_US.webp`
+              : `https://assets.pokemon-zone.com/game-assets/UI/Textures/System/Exp/LOGO_expansion_${code}_en_US.webp`;
           const name = $(tds[0]).text().trim().replace(code, '').trim();
           const date = $(tds[1]).text().trim();
           const count = parseInt($(tds[2]).text().trim());
