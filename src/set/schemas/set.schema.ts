@@ -1,5 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import {
+  DEFAULT_SCRAPER_SOURCE,
+  ScraperSource,
+} from 'src/scraper/scraper.constants';
 
 export type SetDocument = HydratedDocument<Set>;
 
@@ -22,6 +26,9 @@ export class Set {
 
   @Prop()
   order: number;
+
+  @Prop({ default: DEFAULT_SCRAPER_SOURCE })
+  source: ScraperSource;
 }
 
 export const SetSchema = SchemaFactory.createForClass(Set);

@@ -48,6 +48,7 @@ export class HelperService {
       return `/images/${folder}/${filename}`;
     } catch (error: unknown) {
       if (error instanceof Error) {
+        console.log(imageUrl);
         throw new Error(`Failed to download and save image: ${error.message}`);
       }
       throw new Error(
