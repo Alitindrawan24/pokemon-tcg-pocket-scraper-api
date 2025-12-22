@@ -254,7 +254,7 @@ export class ScraperService {
     setCode: string,
     source: ScraperSource = DEFAULT_SCRAPER_SOURCE,
   ): Promise<SetEntity | null> {
-    const filter: Record<string, unknown> = { code: setCode.toUpperCase() };
+    const filter: Record<string, unknown> = { code: setCode };
 
     if (source === ScraperSource.LIMITLESS) {
       filter.$or = [
