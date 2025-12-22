@@ -99,7 +99,7 @@ export class ScraperService {
 
           const setLocalImage = await this.helperService.downloadAndSaveImage(
             image,
-            `sets/${code}`,
+            `sets`,
             `${code}.webp`,
           );
 
@@ -207,7 +207,7 @@ export class ScraperService {
         if (entry.image) {
           const setLocalImage = await this.helperService.downloadAndSaveImage(
             entry.image,
-            `sets/${code}`,
+            `sets`,
             `${code}.webp`,
           );
           setObject.image = setLocalImage ?? '';
