@@ -38,7 +38,19 @@ export class HelperService {
       // Download the image
       const response: AxiosResponse<ArrayBuffer> = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        },
+        timeout: 10000,
       });
+
+      // Validate response is an image
+      const contentType = response.headers['content-type'];
+      if (!contentType?.startsWith('image/')) {
+        console.warn(`Skipping invalid image (${contentType}): ${imageUrl}`);
+        return '';
+      }
 
       // Save to file
       const filePath = path.join(publicFolder, filename);
@@ -47,13 +59,8 @@ export class HelperService {
       // Return the public URL path
       return `/images/${folder}/${filename}`;
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.log(imageUrl);
-        throw new Error(`Failed to download and save image: ${error.message}`);
-      }
-      throw new Error(
-        'Failed to download and save image: Unknown error occurred',
-      );
+      console.warn(`Failed to download image: ${imageUrl}`, error);
+      return '';
     }
   }
 }
