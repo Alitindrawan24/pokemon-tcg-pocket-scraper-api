@@ -1,48 +1,109 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class FindCardDto {
+  @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(300)
   @IsOptional()
-  limit: number;
+  limit: number = 24;
 
+  @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(0)
   @IsOptional()
-  skip: number;
+  skip: number = 0;
 
   @IsString()
   @IsOptional()
-  q: string;
+  q?: string;
 
   @IsString()
   @IsOptional()
-  set: string;
+  set?: string;
 
   @IsString()
   @IsOptional()
-  pokemonType: string;
+  pokemonType?: string;
 
   @IsString()
   @IsOptional()
-  cardType: string;
+  cardType?: string;
+
+  // cardVariant can be empty string "" to filter standard cards
+  @IsString()
+  @IsOptional()
+  cardVariant?: string;
 
   @IsString()
   @IsOptional()
-  cardVariant: string;
+  evolvesFrom?: string;
 
   @IsString()
   @IsOptional()
-  weakness: string;
+  artist?: string;
 
   @IsString()
-  @IsIn(['number'])
   @IsOptional()
-  sort: string;
+  weakness?: string;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  @IsOptional()
+  hpMin?: number;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  @IsOptional()
+  hpMax?: number;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(0)
+  @Max(4)
+  @IsOptional()
+  retreat?: number;
+
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  @IsOptional()
+  hasAbility?: boolean;
 
   @IsString()
-  @IsIn(['asc', 'desc'])
   @IsOptional()
-  ordering: string;
+  rarity?: string;
+
+  @IsString()
+  @IsOptional()
+  attackEnergy?: string;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  @IsOptional()
+  attackPowerMin?: number;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  @IsOptional()
+  attackPowerMax?: number;
 }

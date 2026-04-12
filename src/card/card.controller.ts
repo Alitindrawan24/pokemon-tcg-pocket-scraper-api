@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Controller,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
   Query,
@@ -13,12 +15,13 @@ export class CardController {
   constructor(private readonly cardService: CardService) {}
 
   @Get()
+  @HttpCode(200)
   async findAll(@Query() findCardDto: FindCardDto) {
     const cards = await this.cardService.findAll(findCardDto);
 
     return {
       status: 'success',
-      message: 'Successfully get Card List',
+      message: 'OK',
       data: cards,
     };
   }
@@ -32,7 +35,7 @@ export class CardController {
 
     return {
       status: 'success',
-      message: 'Successfully get Card',
+      message: 'OK',
       data: card,
     };
   }
