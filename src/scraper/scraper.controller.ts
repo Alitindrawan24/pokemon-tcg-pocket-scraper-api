@@ -39,34 +39,6 @@ export class ScraperController {
     return res;
   }
 
-  @Get('/:setCode')
-  async handleScrapeCard(
-    @Headers() headers: Record<string, string>,
-    @Param('setCode') setCode: string,
-    @Query('source') sourceParam?: string,
-  ) {
-    const tokenStatic = process.env.TOKEN_STATIC;
-    if (tokenStatic != '' && tokenStatic != headers['x-token-static']) {
-      throw new UnauthorizedException();
-    }
-
-    const normalizedSource = normalizeScraperSource(sourceParam);
-    if (sourceParam && !normalizedSource) {
-      throw new BadRequestException(`Invalid source: ${sourceParam}`);
-    }
-
-    const source: ScraperSource = normalizedSource ?? DEFAULT_SCRAPER_SOURCE;
-
-    const set = await this.scraperService.getSetByCode(setCode, source);
-
-    if (!set) {
-      throw new NotFoundException('Set not found');
-    }
-
-    const res = await this.scraperService.scrapeSet(set, source);
-    return res;
-  }
-
   @Get('/:setCode/images')
   async handleScrapeImages(
     @Headers() headers: Record<string, string>,
@@ -101,5 +73,33 @@ export class ScraperController {
 
     const result = await this.scraperService.scrapeSetImages(set, source);
     return result;
+  }
+
+  @Get('/:setCode')
+  async handleScrapeCard(
+    @Headers() headers: Record<string, string>,
+    @Param('setCode') setCode: string,
+    @Query('source') sourceParam?: string,
+  ) {
+    const tokenStatic = process.env.TOKEN_STATIC;
+    if (tokenStatic != '' && tokenStatic != headers['x-token-static']) {
+      throw new UnauthorizedException();
+    }
+
+    const normalizedSource = normalizeScraperSource(sourceParam);
+    if (sourceParam && !normalizedSource) {
+      throw new BadRequestException(`Invalid source: ${sourceParam}`);
+    }
+
+    const source: ScraperSource = normalizedSource ?? DEFAULT_SCRAPER_SOURCE;
+
+    const set = await this.scraperService.getSetByCode(setCode, source);
+
+    if (!set) {
+      throw new NotFoundException('Set not found');
+    }
+
+    const res = await this.scraperService.scrapeSet(set, source);
+    return res;
   }
 }
