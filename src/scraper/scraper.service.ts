@@ -269,6 +269,189 @@ export class ScraperService {
     return await this.setModel.findOne(filter);
   }
 
+  async scrapeSetImages(
+    set: SetEntity,
+    source: ScraperSource = DEFAULT_SCRAPER_SOURCE,
+  ): Promise<{ updated: number; skipped: number }> {
+    const cards = await this.cardModel.find({
+      set: set.code.toUpperCase(),
+      $or: [{ image: '' }, { image: null }, { image: { $exists: false } }],
+    });
+
+    if (cards.length === 0) {
+      this.logger.log(
+        `No cards with missing images found for set ${set.code}`,
+      );
+      return { updated: 0, skipped: 0 };
+    }
+
+    this.logger.log(
+      `Found ${cards.length} cards with missing images in set ${set.code}, source: ${source}`,
+    );
+
+    let updated = 0;
+    let skipped = 0;
+
+    if (source === ScraperSource.POKEMON_ZONE) {
+      const result = await this.scrapePokemonZoneImages(set, cards);
+      updated = result.updated;
+      skipped = result.skipped;
+    } else {
+      const result = await this.scrapeLimitlessImages(set, cards);
+      updated = result.updated;
+      skipped = result.skipped;
+    }
+
+    return { updated, skipped };
+  }
+
+  private async scrapeLimitlessImages(
+    set: SetEntity,
+    cards: Card[],
+  ): Promise<{ updated: number; skipped: number }> {
+    const { default: pLimit } =
+      await loadEsm<typeof import('p-limit')>('p-limit');
+    const limit = pLimit(5);
+
+    let updated = 0;
+    let skipped = 0;
+
+    await Promise.all(
+      cards.map((card) =>
+        limit(async () => {
+          const imageUrl = `https://assets.pokemon-zone.com/game-assets/game/cards/${card.set.toLowerCase()}/${card.number.toString().padStart(3, '0')}.webp`;
+          const localImage = await this.helperService.downloadAndSaveImage(
+            imageUrl,
+            `cards/${card.set}`,
+            `${card.number.toString().padStart(3, '0')}.webp`,
+          );
+
+          if (localImage) {
+            await this.cardModel.findOneAndUpdate(
+              { code: card.code },
+              { image: localImage },
+            );
+            updated++;
+          } else {
+            skipped++;
+          }
+        }),
+      ),
+    );
+
+    return { updated, skipped };
+  }
+
+  private async scrapePokemonZoneImages(
+    set: SetEntity,
+    cards: Card[],
+  ): Promise<{ updated: number; skipped: number }> {
+    const lowercaseCode = set.code.toLowerCase();
+    const browser = await this.createBrowser();
+    let updated = 0;
+    let skipped = 0;
+
+    try {
+      const { default: pLimit } =
+        await loadEsm<typeof import('p-limit')>('p-limit');
+      const limit = pLimit(3);
+
+      await Promise.all(
+        cards.map((card) =>
+          limit(async () => {
+            const page = await browser.newPage();
+            try {
+              await this.preparePokemonZonePage(page);
+
+              // Find the slug by listing the set page first
+              const setUrl = `https://www.pokemon-zone.com/sets/${lowercaseCode}/`;
+              await page.goto(setUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 60_000,
+              });
+
+              const slug = await page.evaluate(
+                (code, number) => {
+                  const anchors = Array.from(
+                    document.querySelectorAll<HTMLAnchorElement>(
+                      `a[href^="/cards/${code}/"]`,
+                    ),
+                  );
+
+                  for (const link of anchors) {
+                    const href = link.getAttribute('href') ?? '';
+                    const segments = href.split('/').filter(Boolean);
+                    if (
+                      segments.length >= 4 &&
+                      parseInt(segments[2], 10) === number
+                    ) {
+                      return segments[3];
+                    }
+                  }
+                  return null;
+                },
+                lowercaseCode,
+                card.number,
+              );
+
+              if (!slug) {
+                skipped++;
+                return;
+              }
+
+              const cardUrl = `https://www.pokemon-zone.com/cards/${lowercaseCode}/${card.number}/${slug}/`;
+              await page.goto(cardUrl, {
+                waitUntil: 'networkidle2',
+                timeout: 60_000,
+              });
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              const imageUrl = await page.evaluate(() => {
+                return (
+                  document
+                    .querySelector('.game-card-image__img')
+                    ?.getAttribute('src') ?? null
+                );
+              });
+
+              if (!imageUrl) {
+                skipped++;
+                return;
+              }
+
+              const localImage = await this.helperService.downloadAndSaveImage(
+                imageUrl,
+                `cards/${set.code.toUpperCase()}`,
+                `${card.number.toString().padStart(3, '0')}.webp`,
+              );
+
+              if (localImage) {
+                await this.cardModel.findOneAndUpdate(
+                  { code: card.code },
+                  { image: localImage },
+                );
+                updated++;
+              } else {
+                skipped++;
+              }
+            } catch (error) {
+              this.logger.error(
+                `Failed to scrape image for card ${card.code}: ${error}`,
+              );
+              skipped++;
+            } finally {
+              await page.close();
+            }
+          }),
+        ),
+      );
+    } finally {
+      await browser.close();
+    }
+
+    return { updated, skipped };
+  }
+
   async scrapeSet(set: SetEntity, source?: ScraperSource) {
     const effectiveSource: ScraperSource =
       source ??
