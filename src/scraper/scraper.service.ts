@@ -346,123 +346,39 @@ export class ScraperService {
     set: SetEntity,
     cards: Card[],
   ): Promise<{ updated: number; skipped: number }> {
-    const lowercaseCode = set.code.toLowerCase();
-    const browser = await this.createBrowser();
+    const { default: pLimit } =
+      await loadEsm<typeof import('p-limit')>('p-limit');
+    const limit = pLimit(5);
+
     let updated = 0;
     let skipped = 0;
 
-    try {
-      // Fetch semua slug sekali dari halaman set
-      const slugPage = await browser.newPage();
-      await this.preparePokemonZonePage(slugPage);
-      this.logger.log(`Fetching slug map for set ${set.code}...`);
+    await Promise.all(
+      cards.map((card) =>
+        limit(async () => {
+          const imageUrl = `https://assets.pokemon-zone.com/game-assets/game/cards/${card.set.toLowerCase()}/${card.number.toString().padStart(3, '0')}.webp`;
+          const localImage = await this.helperService.downloadAndSaveImage(
+            imageUrl,
+            `cards/${card.set}`,
+            `${card.number.toString().padStart(3, '0')}.webp`,
+          );
 
-      await slugPage.goto(`https://www.pokemon-zone.com/sets/${lowercaseCode}/`, {
-        waitUntil: 'networkidle2',
-        timeout: 60_000,
-      });
-      await slugPage.waitForSelector(`a[href^="/cards/${lowercaseCode}/"]`, {
-        timeout: 15_000,
-      });
-
-      const slugMap = await slugPage.evaluate((code) => {
-        const anchors = Array.from(
-          document.querySelectorAll<HTMLAnchorElement>(
-            `a[href^="/cards/${code}/"]`,
-          ),
-        );
-        const map: Record<number, string> = {};
-        anchors.forEach((link) => {
-          const href = link.getAttribute('href') ?? '';
-          const segments = href.split('/').filter(Boolean);
-          if (segments.length >= 4) {
-            const number = parseInt(segments[2], 10);
-            const slug = segments[3];
-            if (Number.isFinite(number) && slug && !map[number]) {
-              map[number] = slug;
-            }
+          if (localImage) {
+            await this.cardModel.findOneAndUpdate(
+              { code: card.code },
+              { image: localImage },
+            );
+            updated++;
+            this.logger.log(
+              `Image updated for card ${card.code} (${updated} done)`,
+            );
+          } else {
+            this.logger.warn(`Failed to download image for card ${card.code}`);
+            skipped++;
           }
-        });
-        return map;
-      }, lowercaseCode);
-
-      await slugPage.close();
-      this.logger.log(
-        `Slug map fetched for set ${set.code}: ${Object.keys(slugMap).length} entries`,
-      );
-
-      const { default: pLimit } =
-        await loadEsm<typeof import('p-limit')>('p-limit');
-      const limit = pLimit(3);
-
-      await Promise.all(
-        cards.map((card) =>
-          limit(async () => {
-            const slug = slugMap[card.number];
-            if (!slug) {
-              this.logger.warn(
-                `No slug found for card ${card.code}, skipping`,
-              );
-              skipped++;
-              return;
-            }
-
-            const page = await browser.newPage();
-            try {
-              await this.preparePokemonZonePage(page);
-              const cardUrl = `https://www.pokemon-zone.com/cards/${lowercaseCode}/${card.number}/${slug}/`;
-              await page.goto(cardUrl, {
-                waitUntil: 'networkidle2',
-                timeout: 60_000,
-              });
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-
-              const imageUrl = await page.evaluate(() => {
-                return (
-                  document
-                    .querySelector('.game-card-image__img')
-                    ?.getAttribute('src') ?? null
-                );
-              });
-
-              if (!imageUrl) {
-                this.logger.warn(`No image URL found for card ${card.code}`);
-                skipped++;
-                return;
-              }
-
-              const localImage = await this.helperService.downloadAndSaveImage(
-                imageUrl,
-                `cards/${set.code.toUpperCase()}`,
-                `${card.number.toString().padStart(3, '0')}.webp`,
-              );
-
-              if (localImage) {
-                await this.cardModel.findOneAndUpdate(
-                  { code: card.code },
-                  { image: localImage },
-                );
-                updated++;
-                this.logger.log(
-                  `Image updated for card ${card.code} (${updated} done)`,
-                );
-              } else {
-                skipped++;
-              }
-            } catch (error) {
-              this.logger.error(
-                `Failed to scrape image for card ${card.code}: ${error}`,
-              );
-              skipped++;
-            } finally {
-              await page.close();
-            }
-          }),
-        ),
-      );
-    } finally {
-      await browser.close();
-    }
+        }),
+      ),
+    );
 
     this.logger.log(
       `Image scrape complete for set ${set.code}: ${updated} updated, ${skipped} skipped`,
