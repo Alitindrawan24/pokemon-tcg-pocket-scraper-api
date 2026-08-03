@@ -296,6 +296,10 @@ export class ScraperService {
       const result = await this.scrapePokemonZoneImages(set, cards);
       updated = result.updated;
       skipped = result.skipped;
+    } else if (source === ScraperSource.POKEMON_GO_HUB) {
+      const result = await this.scrapePokemonGoHubImages(set, cards);
+      updated = result.updated;
+      skipped = result.skipped;
     } else {
       const result = await this.scrapeLimitlessImages(set, cards);
       updated = result.updated;
@@ -357,6 +361,50 @@ export class ScraperService {
       cards.map((card) =>
         limit(async () => {
           const imageUrl = `https://assets.pokemon-zone.com/game-assets/game/cards/${card.set.toLowerCase()}/${card.number.toString().padStart(3, '0')}.webp`;
+          const localImage = await this.helperService.downloadAndSaveImage(
+            imageUrl,
+            `cards/${card.set}`,
+            `${card.number.toString().padStart(3, '0')}.webp`,
+          );
+
+          if (localImage) {
+            await this.cardModel.findOneAndUpdate(
+              { code: card.code },
+              { image: localImage },
+            );
+            updated++;
+            this.logger.log(
+              `Image updated for card ${card.code} (${updated} done)`,
+            );
+          } else {
+            this.logger.warn(`Failed to download image for card ${card.code}`);
+            skipped++;
+          }
+        }),
+      ),
+    );
+
+    this.logger.log(
+      `Image scrape complete for set ${set.code}: ${updated} updated, ${skipped} skipped`,
+    );
+    return { updated, skipped };
+  }
+
+  private async scrapePokemonGoHubImages(
+    set: SetEntity,
+    cards: Card[],
+  ): Promise<{ updated: number; skipped: number }> {
+    const { default: pLimit } =
+      await loadEsm<typeof import('p-limit')>('p-limit');
+    const limit = pLimit(5);
+
+    let updated = 0;
+    let skipped = 0;
+
+    await Promise.all(
+      cards.map((card) =>
+        limit(async () => {
+          const imageUrl = `https://pocket.pokemongohub.net/tcg-pocket/cards/${card.set.toLowerCase()}/webp/${card.number}_en.webp`;
           const localImage = await this.helperService.downloadAndSaveImage(
             imageUrl,
             `cards/${card.set}`,
